@@ -1,0 +1,37 @@
+{
+  "canisters": {
+    "internet_identity": {
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "frontend": {},
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+    },
+    "vibe_backend": {
+      "main": "src/vibe_backend/main.mo",
+      "type": "motoko"
+    },
+    "vibe_frontend": {
+      "dependencies": [
+        "vibe_backend"
+      ],
+      "source": [
+        "src/vibe_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "vibe_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
