@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthClient } from '@dfinity/auth-client';
 import { Actor, HttpAgent } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
 import { idlFactory } from '../../declarations/vibe_backend';
 
 function App() {
@@ -9,56 +10,99 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [username, setUsername] = useState('');
+  const [principal, setPrincipal] = useState(null);
 
   useEffect(() => {
     initAuth();
   }, []);
 
+  useEffect(() => {
+    if (actor) {
+      console.log('Actor methods:', Object.keys(actor));
+    }
+  }, [actor]);
+
+  useEffect(() => {
+    if (actor && username) {
+      actor.registerUser(username).catch(console.error);
+    }
+  }, [actor, username]);
+
   async function initAuth() {
-    const authClient = await AuthClient.create();
-    if (await authClient.isAuthenticated()) {
-      handleAuthenticated(authClient);
+    try {
+      const authClient = await AuthClient.create();
+      if (await authClient.isAuthenticated()) {
+        handleAuthenticated(authClient);
+      }
+    } catch (error) {
+      console.error('Error in initAuth:', error);
     }
   }
 
   async function login() {
-    const authClient = await AuthClient.create();
-    authClient.login({
-      identityProvider: process.env.II_URL,
-      onSuccess: () => handleAuthenticated(authClient),
-    });
+    try {
+      const authClient = await AuthClient.create();
+      authClient.login({
+        identityProvider: process.env.II_URL,
+        onSuccess: () => handleAuthenticated(authClient),
+      });
+    } catch (error) {
+      console.error('Error in login:', error);
+    }
   }
 
   async function handleAuthenticated(authClient) {
-    setIsAuthenticated(true);
-    const identity = await authClient.getIdentity();
-    const agent = new HttpAgent({ identity });
-    const chatActor = Actor.createActor(idlFactory, {
-      agent,
-      canisterId: process.env.CHAT_APP_CANISTER_ID,
-    });
-    setActor(chatActor);
+    try {
+      setIsAuthenticated(true);
+      const identity = await authClient.getIdentity();
+      const userPrincipal = identity.getPrincipal();
+      console.log('User Principal:', userPrincipal.toText());
+      setPrincipal(userPrincipal);
+      const agent = new HttpAgent({ identity });
+      await agent.fetchRootKey(); // This line is needed when working with local canisters
+      const chatActor = Actor.createActor(idlFactory, {
+        agent,
+        canisterId: process.env.CHAT_APP_CANISTER_ID,
+      });
+      setActor(chatActor);
+      console.log('Actor created:', !!chatActor);
+    } catch (error) {
+      console.error('Error in handleAuthenticated:', error);
+    }
   }
 
   async function registerUser() {
-    if (actor && username) {
+    if (actor && username && principal) {
       try {
         await actor.registerUser(username);
-        // Optionally, you can fetch and display all users here
+        console.log('User registered successfully');
       } catch (error) {
         console.error('Error registering user:', error);
       }
+    } else {
+      console.error('Cannot register user: missing actor, username, or principal');
+      console.log('Actor:', !!actor, 'Username:', username, 'Principal:', principal?.toText());
     }
   }
 
   async function sendMessage() {
-    if (actor && newMessage) {
-      try {
-        const message = await actor.sendMessage(newMessage);
-        setMessages([...messages, message]);
-        setNewMessage('');
-      } catch (error) {
-        console.error('Error sending message:', error);
+    if (!actor) {
+      console.error('Actor is not initialized');
+      return;
+    }
+    if (!newMessage.trim()) {
+      console.error('Message is empty');
+      return;
+    }
+    try {
+      const message = await actor.sendMessage(newMessage);
+      console.log('Message sent successfully:', message);
+      setMessages(prevMessages => [...prevMessages, message]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
       }
     }
   }
@@ -83,9 +127,9 @@ function App() {
           ) : (
             <div>
               <div>
-                {messages.map((msg) => (
-                  <div key={msg.id}>
-                    <strong>{msg.sender}: </strong>
+                {messages.map((msg, index) => (
+                  <div key={index}>
+                    <strong>{msg.sender.toText()}: </strong>
                     {msg.content}
                   </div>
                 ))}

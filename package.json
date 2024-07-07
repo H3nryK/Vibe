@@ -14,5 +14,8 @@
   "type": "module",
   "workspaces": [
     "src/vibe_frontend"
-  ]
+  ],
+  "dependencies": {
+    "@dfinity/principal": "^1.4.0"
+  }
 }

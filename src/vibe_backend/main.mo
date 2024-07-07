@@ -3,6 +3,8 @@ import Time "mo:base/Time";
 import Buffer "mo:base/Buffer";
 import Array "mo:base/Array";
 import Option "mo:base/Option";
+import Debug "mo:base/Debug";
+import Error "mo:base/Error";
 
 actor ChatApp {
     type Message = {
@@ -52,9 +54,9 @@ actor ChatApp {
         usersEntries := [];
     };
 
-    // User registration
     public shared(msg) func registerUser(username: Text) : async User {
         let caller = msg.caller;
+        Debug.print("Registering user with principal: " # Principal.toText(caller));
         let user : User = {
             id = caller;
             username = username;
@@ -63,29 +65,35 @@ actor ChatApp {
         user
     };
 
-    // Get all users
     public query func getUsers() : async [User] {
         Buffer.toArray(users)
     };
 
-    // Send a message
-    public shared(msg) func sendMessage(content: Text) : async Message {
+   public shared(msg) func sendMessage(content: Text) : async Message {
         let caller = msg.caller;
+        Debug.print("Sending message from principal: " # Principal.toText(caller));
         let senderUsername = getUsernameByPrincipal(caller);
-        assert (Option.isSome(senderUsername));
         
-        let message : Message = {
-            id = nextMessageId;
-            sender = caller;
-            content = content;
-            timestamp = Time.now();
+        switch (senderUsername) {
+            case (null) {
+                Debug.print("User not found for principal: " # Principal.toText(caller));
+                throw Error.reject("User not registered");
+            };
+            case (?username) {
+                let message : Message = {
+                    id = nextMessageId;
+                    sender = caller;
+                    content = content;
+                    timestamp = Time.now();
+                };
+                messages.add(message);
+                nextMessageId += 1;
+                Debug.print("Message sent successfully");
+                message
+            };
         };
-        messages.add(message);
-        nextMessageId += 1;
-        message
     };
 
-    // Delete a message by id
     public shared(msg) func deleteMessage(id: Nat) : async Bool {
         let caller = msg.caller;
         let index = Array.indexOf<Message>(
@@ -108,12 +116,15 @@ actor ChatApp {
         }
     };
 
-    // Helper function to get username by principal
     private func getUsernameByPrincipal(principal: Principal) : ?Text {
+        Debug.print("Looking up username for principal: " # Principal.toText(principal));
         Option.map<User, Text>(
             Array.find<User>(
                 Buffer.toArray(users),
-                func(user: User): Bool { user.id == principal }
+                func(user: User): Bool { 
+                    Debug.print("Comparing with user: " # Principal.toText(user.id));
+                    Principal.equal(user.id, principal) 
+                }
             ),
             func (user : User) : Text { user.username }
         )
