@@ -55,6 +55,7 @@ actor ChatApp {
     };
 
     public shared(msg) func registerUser(username: Text) : async User {
+        Debug.print("RegisterUser called with msg: " # Principal.toText(msg.caller));
         let caller = msg.caller;
         Debug.print("Registering user with principal: " # Principal.toText(caller));
         let user : User = {
@@ -69,7 +70,8 @@ actor ChatApp {
         Buffer.toArray(users)
     };
 
-   public shared(msg) func sendMessage(content: Text) : async Message {
+    public shared(msg) func sendMessage(content: Text) : async Message {
+        Debug.print("SendMessage called with msg: " # Principal.toText(msg.caller));
         let caller = msg.caller;
         Debug.print("Sending message from principal: " # Principal.toText(caller));
         let senderUsername = getUsernameByPrincipal(caller);

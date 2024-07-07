@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthClient } from '@dfinity/auth-client';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { Principal } from '@dfinity/principal';
 import { idlFactory } from '../../declarations/vibe_backend';
 
 function App() {
@@ -24,7 +23,7 @@ function App() {
 
   useEffect(() => {
     if (actor && username) {
-      actor.registerUser(username).catch(console.error);
+      registerUser();
     }
   }, [actor, username]);
 
@@ -138,6 +137,7 @@ function App() {
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message"
               />
               <button onClick={sendMessage}>Send</button>
             </div>
