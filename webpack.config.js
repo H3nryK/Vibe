@@ -43,8 +43,6 @@ module.exports = {
   target: 'web',
   mode: isDevelopment ? 'development' : 'production',
   entry: {
-    // The frontend.entrypoint points to the HTML file for this build, so we need
-    // to replace the extension to `.js`.
     index: path.join(__dirname, asset_entry).replace(/\.html$/, '.js'),
   },
   devtool: isDevelopment ? 'source-map' : false,
@@ -66,17 +64,11 @@ module.exports = {
     filename: 'index.js',
     path: path.join(__dirname, 'dist', 'chat_app_assets'),
   },
-
-  // Depending in the language or framework you are using for
-  // front-end development, add module loaders to the default
-  // webpack configuration. For example, if you are using React
-  // modules and CSS as described in the "Adding a stylesheet"
-  // tutorial, uncomment the following lines:
   module: {
-   rules: [
-     { test: /\.(ts|tsx|jsx)$/, loader: 'ts-loader' },
-     { test: /\.css$/, use: ['style-loader','css-loader'] }
-   ]
+    rules: [
+      { test: /\.(ts|tsx|jsx)$/, loader: 'ts-loader' },
+      { test: /\.css$/, use: ['style-loader','css-loader'] }
+    ]
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -100,7 +92,6 @@ module.exports = {
       process: require.resolve('process/browser'),
     }),
   ],
-  // proxy /api to port 8000 during development
   devServer: {
     proxy: {
       '/api': {
@@ -112,7 +103,10 @@ module.exports = {
       },
     },
     hot: true,
-    contentBase: path.resolve(__dirname, './src/chat_app_assets'),
-    watchContentBase: true
+    static: {
+      directory: path.resolve(__dirname, './src/chat_app_assets'),
+    },
+    historyApiFallback: true,
+    watchFiles: ['src/**/*.{js,ts,jsx,tsx}'],
   },
 };
